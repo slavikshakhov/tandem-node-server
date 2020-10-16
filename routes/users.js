@@ -1,4 +1,5 @@
 const express = require("express");
+var nodemailer = require("nodemailer");
 const app = express();
 const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
@@ -29,7 +30,7 @@ router.post(
       return res.status(422).json({ errors: errors.array() });
     }
 
-    let { name, password, city, country } = req.body;
+    let { name, email, password, city, country } = req.body;
     name = name.toLowerCase();
 
     var user = await User.findOne({ where: { name: name } });
@@ -41,7 +42,7 @@ router.post(
         if (err) {
           res.json("password could not be hashed");
         } else {
-          User.create({ name, password: hash, city, country });
+          User.create({ name, email, password: hash, city, country });
           res.status(200).json({ message: "Successfully registered!" });
         }
       });
@@ -66,6 +67,7 @@ router.post("/login", async (req, res) => {
           { expiresIn: "300s" },
           (err, token) => {
             delete user.password;
+            console.log(user.email);
             res.json({
               token,
               user,
@@ -140,7 +142,7 @@ router.post("/thisUserwantedlgs", async (req, res) => {
 router.post("/filterUsers", async (req, res) => {
   //const {offeredLgs, wantedLgs} = req.body;
   var usersOfferedLgs = await User.findAll({
-    attributes: ["name", "city", "country"],
+    attributes: ["name", "email", "city", "country"],
     include: [
       {
         model: OfferedLg,
@@ -150,7 +152,7 @@ router.post("/filterUsers", async (req, res) => {
     ],
   });
   var usersWantedLgs = await User.findAll({
-    attributes: ["name", "city", "country"],
+    attributes: ["name", "email", "city", "country"],
     include: [
       {
         model: WantedLg,
@@ -167,11 +169,11 @@ router.post("/filterUsers", async (req, res) => {
 
       if (offeredLg.name === wantedLg.name) {
         console.log(JSON.stringify(offeredLg));
-        console.log("********************************************************");
         let newObj = {};
         filteredUsers.push({
           ...newObj,
           name: offeredLg.name,
+          email: offeredLg.email,
           city: offeredLg.city,
           country: offeredLg.country,
           offeredLgs: offeredLg.offeredlgs
@@ -190,9 +192,35 @@ router.post("/filterUsers", async (req, res) => {
   res.json({ filteredUsers });
 });
 
+router.post("/sendemail", async (req, res) => {
+  const { from, password, to, subject, text } = req.body;
+  var transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: from,
+      pass: password,
+    },
+  });
+
+  var mailOptions = {
+    from,
+    to,
+    subject,
+    text,
+  };
+
+  transporter.sendMail(mailOptions, function (error, info) {
+    if (error) {
+      res.status(404).json(error);
+    } else {
+      res.json(info);
+    }
+  });
+});
+
 router.get("/allUsersofferedlgs", async (req, res) => {
   var users = await User.findAll({
-    attributes: ["name", "city", "country"],
+    attributes: ["name", "email", "city", "country"],
     include: [
       {
         model: OfferedLg,
@@ -204,7 +232,7 @@ router.get("/allUsersofferedlgs", async (req, res) => {
 });
 router.get("/allUserswantedlgs", async (req, res) => {
   var users = await User.findAll({
-    attributes: ["name", "city", "country"],
+    attributes: ["name", "email", "city", "country"],
     include: [
       {
         model: WantedLg,

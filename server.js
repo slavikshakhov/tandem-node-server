@@ -4,7 +4,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 var cors = require("cors");
 
-const port = 4000;
+const port = process.env.PORT || 4000;
 const app = express();
 const http = require("http").Server(app);
 const io = require("socket.io")(http);

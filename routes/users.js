@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 const { check, validationResult } = require("express-validator");
 const router = express.Router();
 
-const db = require("../mysql");
+const db = require("../db");
 const seq = require("sequelize");
 const Op = seq.Op;
 const bcrypt = require("bcrypt");
